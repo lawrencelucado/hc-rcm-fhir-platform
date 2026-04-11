@@ -1,0 +1,4 @@
+denial_id,claim_id,claim_line_id,payer_id,denial_code,denial_reason,denial_status,denial_amount
+D5001,C3001,CL4001,PAY001,CO-16,Missing information,Open,450.00
+D5002,C3001,CL4002,PAY001,CO-50,Medical necessity not met,Open,800.00
+D5003,C3004,CL4006,PAY003,CO-18,Duplicate claim or service,Open,5400.00

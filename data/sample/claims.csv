@@ -1,0 +1,5 @@
+claim_id,patient_id,encounter_id,payer_id,claim_status,total_charge_amount,total_allowed_amount,total_paid_amount
+C3001,P1001,E2001,PAY001,Denied,1250.00,900.00,0.00
+C3002,P1002,E2002,PAY002,Partially Paid,2100.00,1650.00,1200.00
+C3003,P1003,E2003,PAY001,Paid,980.00,760.00,760.00
+C3004,P1004,E2004,PAY003,Denied,5400.00,4100.00,0.00

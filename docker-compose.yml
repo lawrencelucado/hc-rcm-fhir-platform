@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: hc_postgres
+    environment:
+      POSTGRES_DB: hc_rcm
+      POSTGRES_USER: hc_app
+      POSTGRES_PASSWORD: hc_app_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hc_app -d hc_rcm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2026-01-31T20-34-41Z
+    container_name: hc_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: hc_api
+    environment:
+      API_ENV: local
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: hc_rcm
+      POSTGRES_USER: hc_app
+      POSTGRES_PASSWORD: hc_app_password
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    volumes:
+      - ./api:/app/api
+      - ./docs:/app/docs
+
+volumes:
+  postgres_data:
+  minio_data:

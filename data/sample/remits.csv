@@ -1,0 +1,3 @@
+remit_id,claim_id,payer_id,remit_date,allowed_amount,paid_amount,patient_responsibility_amount
+R6001,C3002,PAY002,2026-03-12,1650.00,1200.00,150.00
+R6002,C3003,PAY001,2026-03-13,760.00,760.00,0.00

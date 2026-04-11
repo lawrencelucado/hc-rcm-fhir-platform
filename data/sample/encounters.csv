@@ -1,0 +1,5 @@
+encounter_id,patient_id,encounter_date,facility_name,provider_id,encounter_type
+E2001,P1001,2026-03-01,Lakeside Medical Center,PRV100,Outpatient
+E2002,P1002,2026-03-03,Riverbend Clinic,PRV101,Emergency
+E2003,P1003,2026-03-05,Lakeside Medical Center,PRV102,Outpatient
+E2004,P1004,2026-03-06,Hillcrest Hospital,PRV103,Inpatient

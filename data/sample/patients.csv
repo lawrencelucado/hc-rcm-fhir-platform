@@ -1,0 +1,5 @@
+patient_id,first_name,last_name,date_of_birth,gender,payer_id
+P1001,Ava,Carter,1987-04-11,F,PAY001
+P1002,Noah,Mitchell,1975-09-23,M,PAY002
+P1003,Mia,Nguyen,1992-02-17,F,PAY001
+P1004,Ethan,Ramirez,1968-12-05,M,PAY003
