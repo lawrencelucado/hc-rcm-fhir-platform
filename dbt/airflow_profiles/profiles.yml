@@ -1,0 +1,12 @@
+rcm_platform:
+  target: docker
+  outputs:
+    docker:
+      type: postgres
+      host: postgres
+      port: 5432
+      dbname: rcm
+      user: rcm
+      password: rcm_dev_2026
+      schema: curated
+      threads: 4

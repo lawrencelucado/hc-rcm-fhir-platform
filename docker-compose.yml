@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16
+    build: ./postgres
     container_name: rcm-postgres
     restart: unless-stopped
     environment:
@@ -12,6 +12,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./ingest/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./postgres/pgaudit.conf:/etc/postgresql/pgaudit.conf
+    command: postgres -c shared_preload_libraries=pgaudit -c pgaudit.log=read,write -c pgaudit.log_relation=on -c pgaudit.log_catalog=off
 
   minio:
     image: minio/minio:latest
@@ -36,6 +38,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: rcm_grafana_2026
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: http://10.20.1.246:3000
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_ALERTING_ENABLED: "false"
     ports:
       - "3000:3000"
     volumes:
@@ -70,15 +74,41 @@ services:
       SPLUNK_HEC_URL: https://rcm-splunk:8088/services/collector/event
       SPLUNK_HEC_TOKEN: rcm-phi-audit-2026
       SPLUNK_INDEX: phi_audit
-      SPLUNK_API_URL: http://rcm-splunk:8089
+      SPLUNK_API_URL: https://rcm-splunk:8089
       SPLUNK_ADMIN_PASS: Rcm_Splunk_2026!
       POLL_INTERVAL: "30"
     depends_on:
       - postgres
       - splunk
 
+  airflow:
+    image: apache/airflow:2.9.0
+    container_name: rcm-airflow
+    restart: unless-stopped
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://rcm:rcm_dev_2026@postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: rcm_airflow_secret_2026
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: Rcm_Airflow_2026!
+      _PIP_ADDITIONAL_REQUIREMENTS: "psycopg2-binary==2.9.9 minio==7.2.7 dbt-postgres==1.9.0"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./:/opt/rcm
+      - airflow_logs:/opt/airflow/logs
+    command: standalone
+    depends_on:
+      - postgres
+
 volumes:
   postgres_data:
   minio_data:
   grafana_data:
   splunk_data:
+  airflow_logs:
