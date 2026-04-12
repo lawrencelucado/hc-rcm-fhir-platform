@@ -46,7 +46,39 @@ services:
     depends_on:
       - postgres
 
+  splunk:
+    image: splunk/splunk:9.3.0
+    container_name: rcm-splunk
+    restart: unless-stopped
+    environment:
+      SPLUNK_START_ARGS: --accept-license
+      SPLUNK_PASSWORD: Rcm_Splunk_2026!
+      SPLUNK_HEC_TOKEN: rcm-phi-audit-2026
+    ports:
+      - "8000:8000"
+      - "8088:8088"
+      - "8089:8089"
+    volumes:
+      - splunk_data:/opt/splunk/var
+
+  forwarder:
+    build: ./forwarder
+    container_name: rcm-forwarder
+    restart: unless-stopped
+    environment:
+      PG_DSN: host=postgres port=5432 dbname=rcm user=rcm password=rcm_dev_2026
+      SPLUNK_HEC_URL: https://rcm-splunk:8088/services/collector/event
+      SPLUNK_HEC_TOKEN: rcm-phi-audit-2026
+      SPLUNK_INDEX: phi_audit
+      SPLUNK_API_URL: http://rcm-splunk:8089
+      SPLUNK_ADMIN_PASS: Rcm_Splunk_2026!
+      POLL_INTERVAL: "30"
+    depends_on:
+      - postgres
+      - splunk
+
 volumes:
   postgres_data:
   minio_data:
   grafana_data:
+  splunk_data:

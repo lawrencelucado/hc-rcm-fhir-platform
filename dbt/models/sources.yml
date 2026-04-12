@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: patients
+      - name: payers
+      - name: providers
+      - name: claims
+      - name: remittance
+      - name: encounters
+
+  - name: audit
+    schema: audit
+    tables:
+      - name: access_log

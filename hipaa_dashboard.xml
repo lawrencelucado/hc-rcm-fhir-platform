@@ -1,0 +1,198 @@
+<form version="1.1" theme="dark">
+  <label>HIPAA PHI Audit Dashboard</label>
+  <description>164.312(b) Audit Controls — PHI access monitoring for the RCM platform</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="time_range" searchWhenChanged="true">
+      <label>Time Range</label>
+      <default><earliest>-24h@h</earliest><latest>now</latest></default>
+    </input>
+  </fieldset>
+
+  <!-- Row 1: Stat Cards -->
+  <row>
+    <panel>
+      <single>
+        <title>Total PHI Events</title>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | where is_phi_access="true" | stats count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,10,50]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Suspicious Events</title>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | where is_suspicious="true" | stats count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[0,1]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Unique Users Accessing PHI</title>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | where is_phi_access="true" | stats dc(db_user) as count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[0,3]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>PHI Rows Accessed</title>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | where is_phi_access="true" | spath output=row_count path=row_count | stats sum(row_count) as count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[0,100,1000]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>WARNING Events</title>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | where severity="WARNING" | stats count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34","0xdc4e41"]</option>
+        <option name="rangeValues">[0,1]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+
+  <!-- Row 2: Timeline + Operations -->
+  <row>
+    <panel>
+      <title>PHI Access Events Over Time</title>
+      <chart>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | eval phi=if(is_phi_access="true","PHI Access","Non-PHI Access") | timechart span=15m count by phi</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.showMarkers">1</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Event Count</option>
+        <option name="charting.seriesColors">["0xdc4e41","0x53a051"]</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Events by Operation</title>
+      <chart>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | stats count by operation | sort -count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.seriesColors">["0x53a051","0xf8be34","0xf1813f","0xdc4e41"]</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- Row 3: By User + By Application -->
+  <row>
+    <panel>
+      <title>PHI Access by User / Role</title>
+      <chart>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | where is_phi_access="true" | stats count by db_user | sort -count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.orientation">bar</option>
+        <option name="charting.axisTitleX.text">Events</option>
+        <option name="charting.seriesColors">["0x5379af"]</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>PHI Access by Application</title>
+      <chart>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | where is_phi_access="true" | stats count by application | sort -count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.orientation">bar</option>
+        <option name="charting.axisTitleX.text">Events</option>
+        <option name="charting.seriesColors">["0x5379af"]</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- Row 4: Suspicious Events Table -->
+  <row>
+    <panel>
+      <title>Suspicious / WARNING Events — Review Required</title>
+      <table>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | where is_suspicious="true" OR severity="WARNING" | table _time db_user role table operation row_count application client_ip severity is_phi_access | sort -_time</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">true</option>
+        <option name="drilldown">row</option>
+        <format type="color" field="severity">
+          <colorPalette type="map">{"WARNING":"#f1813f","INFO":"#53a051"}</colorPalette>
+        </format>
+        <format type="color" field="is_phi_access">
+          <colorPalette type="map">{"true":"#dc4e41","false":"#53a051"}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+
+  <!-- Row 5: Full Audit Log -->
+  <row>
+    <panel>
+      <title>Full Audit Log</title>
+      <table>
+        <search>
+          <query>index=phi_audit sourcetype=rcm:phi_audit | spath | table _time db_user role table operation row_count application client_ip severity is_phi_access is_suspicious hipaa_control | sort -_time</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="wrap">false</option>
+        <option name="rowNumbers">true</option>
+        <option name="count">20</option>
+        <format type="color" field="severity">
+          <colorPalette type="map">{"WARNING":"#f1813f","INFO":"#53a051"}</colorPalette>
+        </format>
+        <format type="color" field="is_suspicious">
+          <colorPalette type="map">{"true":"#dc4e41","false":"#53a051"}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>
