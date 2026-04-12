@@ -1,90 +1,67 @@
-# hc-rcm-fhir-platform
+# HC RCM FHIR Platform
 
-Healthcare revenue cycle analytics and FHIR data platform built with Python, PostgreSQL, dbt, Airflow, FastAPI, and Docker.
+Healthcare Revenue Cycle + FHIR Data Platform
+**Phase 1 — RCM Data Platform**
 
-## MVP Scope
-
-This repository starts with a local, Docker Compose based MVP for a healthcare revenue cycle analytics platform. The first milestone is a runnable foundation, not a full production-grade data platform.
-
-Included in this phase:
-
-- PostgreSQL for operational and analytics storage
-- MinIO for S3-compatible raw object storage
-- FastAPI for health and future metrics endpoints
-- Starter project structure for ETL, dbt, Airflow, and infrastructure docs
-- Synthetic sample CSV data for core revenue cycle entities
-
-Deferred to later phases:
-
-- Full ETL implementation
-- dbt models and tests
-- Airflow DAG orchestration
-- FHIR export pipeline
-- Dashboards and screenshots
-
-## Repository Layout
-
-```text
-.
-|-- api/
-|-- airflow/
-|-- data/
-|   |-- raw/
-|   `-- sample/
-|-- dbt/
-|-- docs/
-|-- etl/
-`-- infra/
-```
+## Stack
+- PostgreSQL 16 (data warehouse)
+- MinIO (raw file landing zone)
+- Python ETL (CSV → raw schema)
+- dbt (raw → curated → mart)
+- FastAPI (coming in Phase 4)
 
 ## Quick Start
 
-Prerequisites:
-
-- Docker
-- Docker Compose v2
-- GNU Make
-
-Run the local stack:
-
 ```bash
-make up
+# 1. Start services
+docker compose up -d
+
+# 2. Install Python deps
+cd ingest && pip install -r requirements.txt
+
+# 3. Generate sample data
+python generate_data.py
+
+# 4. Run ETL
+python load.py
+
+# 5. Run dbt transforms
+cd ../dbt
+pip install dbt-postgres
+dbt run
+dbt test
 ```
 
-Validate the API:
+## Project Structure
 
-```bash
-curl http://localhost:8000/health
+```
+hc-rcm-fhir-platform/
+├── docker-compose.yml      PostgreSQL + MinIO
+├── data/                   generated CSV files (gitignored)
+├── ingest/
+│   ├── sql/init.sql        schema definitions
+│   ├── generate_data.py    sample data generator
+│   ├── load.py             ETL pipeline
+│   └── requirements.txt
+├── dbt/
+│   ├── models/curated/     dim_patient, dim_payer, fct_claims, fct_denials
+│   └── models/mart/        denial_summary, ar_aging, payer_scorecard
+└── api/                    FastAPI (Phase 4)
 ```
 
-Stop the stack:
+## Data Model
 
-```bash
-make down
-```
+### Raw Schema
+Source-aligned tables: `patients`, `payers`, `providers`, `claims`, `remittance`, `encounters`
 
-## Services
+### Curated Schema (dbt)
+- `dim_patient` — patient demographics
+- `dim_payer` — payer reference
+- `dim_provider` — provider reference
+- `fct_claims` — claim facts with late filing flag
+- `fct_denials` — remittance with recovery categorization
 
-- FastAPI: `http://localhost:8000`
-- PostgreSQL: `localhost:5432`
-- MinIO API: `http://localhost:9000`
-- MinIO Console: `http://localhost:9001`
-
-## TODO
-
-- Implement Python ETL from sample CSVs into raw tables
-- Add `audit_log` and first raw schema
-- Add curated models and denial marts
-- Add first FHIR export slice
-- Add Airflow DAG and dbt build flow
-
-## AWS Mapping
-
-This local MVP maps cleanly to a future AWS deployment:
-
-- MinIO -> Amazon S3
-- PostgreSQL -> Amazon RDS for PostgreSQL
-- Docker Compose services -> ECS/Fargate or EKS
-- FastAPI -> ECS/Fargate, App Runner, or EKS
-- Airflow -> MWAA
-- Batch ETL -> ECS tasks, Lambda, or Glue depending on workload
+### Mart Schema (dbt)
+- `denial_summary` — denials by payer + code
+- `ar_aging` — AR aging buckets by payer
+- `payer_scorecard` — payer grades (A-D)
