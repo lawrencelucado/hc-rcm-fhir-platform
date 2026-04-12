@@ -27,6 +27,26 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
 
+  grafana:
+    image: grafana/grafana:11.6.1
+    container_name: rcm-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: rcm_grafana_2026
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://10.20.1.246:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+    depends_on:
+      - postgres
+
 volumes:
   postgres_data:
   minio_data:
+  grafana_data:

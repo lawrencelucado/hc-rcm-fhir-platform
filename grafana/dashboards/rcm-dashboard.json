@@ -1,0 +1,491 @@
+{
+  "uid": "rcm-main",
+  "title": "RCM Analytics Dashboard",
+  "tags": [
+    "rcm",
+    "healthcare",
+    "denials"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Claims",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rcm-postgres"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rcm-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS value FROM raw.claims",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Billed",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rcm-postgres"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rcm-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT SUM(total_billed)::bigint AS value FROM curated_mart.payer_scorecard",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total Paid",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rcm-postgres"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rcm-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT SUM(total_paid)::bigint AS value FROM curated_mart.payer_scorecard",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Total Denied",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rcm-postgres"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rcm-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT SUM(total_denied)::bigint AS value FROM curated_mart.payer_scorecard",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "barchart",
+      "title": "Denial Rate by Payer (%)",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rcm-postgres"
+      },
+      "options": {
+        "xField": "payer_name",
+        "barWidth": 0.7,
+        "orientation": "horizontal",
+        "stacking": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rcm-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT payer_name, denial_rate_pct FROM curated_mart.payer_scorecard ORDER BY denial_rate_pct DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "piechart",
+      "title": "Top Denial Codes",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rcm-postgres"
+      },
+      "options": {
+        "pieType": "donut",
+        "legendDisplayMode": "table",
+        "legendPlacement": "right"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rcm-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT denial_code, SUM(denial_count) AS count FROM curated_mart.denial_summary GROUP BY denial_code ORDER BY count DESC LIMIT 10",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Payer Scorecard",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rcm-postgres"
+      },
+      "options": {
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "denial_rate_pct"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 20
+                    },
+                    {
+                      "color": "orange",
+                      "value": 35
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "payer_grade"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "A": {
+                        "color": "green",
+                        "text": "A",
+                        "index": 0
+                      },
+                      "B": {
+                        "color": "blue",
+                        "text": "B",
+                        "index": 1
+                      },
+                      "C": {
+                        "color": "yellow",
+                        "text": "C",
+                        "index": 2
+                      },
+                      "D": {
+                        "color": "red",
+                        "text": "D",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rcm-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT payer_name, payer_type, total_claims, ROUND(total_billed::numeric,2) AS total_billed, ROUND(total_paid::numeric,2) AS total_paid, ROUND(denial_rate_pct::numeric,1) AS denial_rate_pct, payer_grade FROM curated_mart.payer_scorecard ORDER BY denial_rate_pct DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "AR Aging by Payer ($)",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 14,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rcm-postgres"
+      },
+      "options": {
+        "xField": "payer_name",
+        "stacking": "normal",
+        "barWidth": 0.7,
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rcm-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT payer_name, COALESCE(bucket_0_30,0) AS \"0-30 days\", COALESCE(bucket_31_60,0) AS \"31-60 days\", COALESCE(bucket_61_90,0) AS \"61-90 days\", COALESCE(bucket_90_plus,0) AS \"90+ days\" FROM curated_mart.ar_aging ORDER BY payer_name",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "piechart",
+      "title": "Recovery Category Breakdown",
+      "gridPos": {
+        "x": 14,
+        "y": 20,
+        "w": 10,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rcm-postgres"
+      },
+      "options": {
+        "pieType": "donut",
+        "legendDisplayMode": "table",
+        "legendPlacement": "right"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rcm-postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT recovery_category, COUNT(*) AS count FROM curated_curated.fct_denials GROUP BY recovery_category ORDER BY count DESC",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "timepicker": {}
+}
