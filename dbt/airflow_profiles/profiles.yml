@@ -7,6 +7,6 @@ rcm_platform:
       port: 5432
       dbname: rcm
       user: rcm
-      password: rcm_dev_2026
+      password: "{{ env_var('DB_PASS') }}"
       schema: curated
       threads: 4

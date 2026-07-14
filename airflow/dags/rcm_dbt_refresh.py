@@ -5,6 +5,7 @@ Use this to keep Grafana dashboards current without a full ETL run
 """
 
 from datetime import datetime, timedelta
+import os
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
@@ -20,7 +21,7 @@ ENV = {
     "DB_PORT": "5432",
     "DB_NAME": "rcm",
     "DB_USER": "rcm",
-    "DB_PASS": "rcm_dev_2026",
+    "DB_PASS": os.environ["DB_PASS"],
 }
 
 with DAG(

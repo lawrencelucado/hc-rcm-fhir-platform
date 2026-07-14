@@ -7,7 +7,7 @@ datasources:
     database: rcm
     user: rcm
     secureJsonData:
-      password: rcm_dev_2026
+      password: $DB_PASSWORD
     jsonData:
       sslmode: disable
       postgresVersion: 1600

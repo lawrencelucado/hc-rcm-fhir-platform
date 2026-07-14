@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: rcm
-      POSTGRES_PASSWORD: rcm_dev_2026
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
       POSTGRES_DB: rcm
     ports:
       - "5432:5432"
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: rcmadmin
-      MINIO_ROOT_PASSWORD: rcm_minio_2026
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -35,7 +35,8 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: rcm_grafana_2026
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: http://10.20.1.246:3000
       GF_UNIFIED_ALERTING_ENABLED: "true"
@@ -56,8 +57,8 @@ services:
     restart: unless-stopped
     environment:
       SPLUNK_START_ARGS: --accept-license
-      SPLUNK_PASSWORD: Rcm_Splunk_2026!
-      SPLUNK_HEC_TOKEN: rcm-phi-audit-2026
+      SPLUNK_PASSWORD: ${SPLUNK_ADMIN_PASSWORD:?set SPLUNK_ADMIN_PASSWORD in .env}
+      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN:?set SPLUNK_HEC_TOKEN in .env}
     ports:
       - "8000:8000"
       - "8088:8088"
@@ -70,12 +71,12 @@ services:
     container_name: rcm-forwarder
     restart: unless-stopped
     environment:
-      PG_DSN: host=postgres port=5432 dbname=rcm user=rcm password=rcm_dev_2026
+      PG_DSN: host=postgres port=5432 dbname=rcm user=rcm password=${DB_PASSWORD:?set DB_PASSWORD in .env}
       SPLUNK_HEC_URL: https://rcm-splunk:8088/services/collector/event
-      SPLUNK_HEC_TOKEN: rcm-phi-audit-2026
+      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN:?set SPLUNK_HEC_TOKEN in .env}
       SPLUNK_INDEX: phi_audit
       SPLUNK_API_URL: https://rcm-splunk:8089
-      SPLUNK_ADMIN_PASS: Rcm_Splunk_2026!
+      SPLUNK_ADMIN_PASS: ${SPLUNK_ADMIN_PASSWORD:?set SPLUNK_ADMIN_PASSWORD in .env}
       POLL_INTERVAL: "30"
     depends_on:
       - postgres
@@ -87,14 +88,16 @@ services:
     restart: unless-stopped
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://rcm:rcm_dev_2026@postgres:5432/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://rcm:${DB_PASSWORD:?set DB_PASSWORD in .env}@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__WEBSERVER__SECRET_KEY: rcm_airflow_secret_2026
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?set AIRFLOW_SECRET_KEY in .env}
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
       _AIRFLOW_DB_MIGRATE: "true"
       _AIRFLOW_WWW_USER_CREATE: "true"
       _AIRFLOW_WWW_USER_USERNAME: admin
-      _AIRFLOW_WWW_USER_PASSWORD: Rcm_Airflow_2026!
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:?set AIRFLOW_ADMIN_PASSWORD in .env}
+      DB_PASS: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env}
       _PIP_ADDITIONAL_REQUIREMENTS: "psycopg2-binary==2.9.9 minio==7.2.7 dbt-postgres==1.9.0"
     ports:
       - "8080:8080"
@@ -106,9 +109,47 @@ services:
     depends_on:
       - postgres
 
+  fhir-postgres:
+    image: postgres:16.9
+    container_name: rcm-fhir-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hapi
+      POSTGRES_PASSWORD: ${FHIR_DB_PASSWORD:?set FHIR_DB_PASSWORD in .env}
+      POSTGRES_DB: hapi
+    volumes:
+      - fhir_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hapi -d hapi"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  fhir:
+    image: hapiproject/hapi:v8.10.0-2
+    container_name: rcm-fhir
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${FHIR_DB_PASSWORD:?set FHIR_DB_PASSWORD in .env}
+      JAVA_TOOL_OPTIONS: -Xms512m -Xmx1536m
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./fhir/application.yaml:/app/config/application.yaml:ro
+    depends_on:
+      fhir-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "java", "-cp", "/app", "HealthCheck"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 120s
+
 volumes:
   postgres_data:
   minio_data:
   grafana_data:
   splunk_data:
   airflow_logs:
+  fhir_postgres_data:

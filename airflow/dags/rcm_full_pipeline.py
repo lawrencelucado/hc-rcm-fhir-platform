@@ -6,6 +6,7 @@ HIPAA: All steps logged to audit.access_log → forwarded to Splunk
 """
 
 from datetime import datetime, timedelta
+import os
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
@@ -22,10 +23,10 @@ ENV = {
     "DB_PORT": "5432",
     "DB_NAME": "rcm",
     "DB_USER": "rcm",
-    "DB_PASS": "rcm_dev_2026",
+    "DB_PASS": os.environ["DB_PASS"],
     "MINIO_ENDPOINT": "minio:9000",
     "MINIO_ACCESS_KEY": "rcmadmin",
-    "MINIO_SECRET_KEY": "rcm_minio_2026",
+    "MINIO_SECRET_KEY": os.environ["MINIO_SECRET_KEY"],
 }
 
 with DAG(

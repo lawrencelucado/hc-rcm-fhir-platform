@@ -1,7 +1,7 @@
 # HC RCM FHIR Platform
 
 Healthcare Revenue Cycle + FHIR Data Platform
-**Phase 1 — RCM Data Platform**
+**Phase 2 — RCM + FHIR Integration Homelab**
 
 ## Stack
 - PostgreSQL 16 (data warehouse)
@@ -9,28 +9,41 @@ Healthcare Revenue Cycle + FHIR Data Platform
 - Python ETL (CSV → raw schema)
 - dbt (raw → curated → mart)
 - FastAPI (coming in Phase 4)
+- HAPI FHIR JPA Server 8.10 (FHIR R4)
+- PostgreSQL 16 (isolated FHIR persistence)
 
 ## Quick Start
 
 ```bash
-# 1. Start services
+# 1. Create a local secrets file and replace every placeholder
+cp .env.example .env
+
+# 2. Start services
 docker compose up -d
 
-# 2. Install Python deps
+# 3. Install Python deps
 cd ingest && pip install -r requirements.txt
 
-# 3. Generate sample data
+# 4. Generate sample data
 python generate_data.py
 
-# 4. Run ETL
+# 5. Run ETL
 python load.py
 
-# 5. Run dbt transforms
+# 6. Run dbt transforms
 cd ../dbt
 pip install dbt-postgres
 dbt run
 dbt test
+
+# 7. Verify the FHIR transaction, read, and search workflow
+python scripts/fhir_smoke_test.py
 ```
+
+FHIR base URL: `http://localhost:8090/fhir`
+
+All included data is synthetic. This lab is for learning and demonstration, not
+for production clinical use or protected health information.
 
 ## Project Structure
 
@@ -46,7 +59,9 @@ hc-rcm-fhir-platform/
 ├── dbt/
 │   ├── models/curated/     dim_patient, dim_payer, fct_claims, fct_denials
 │   └── models/mart/        denial_summary, ar_aging, payer_scorecard
-└── api/                    FastAPI (Phase 4)
+├── fhir/                  HAPI configuration + synthetic RCM bundle
+├── scripts/               repeatable validation tools
+└── api/                   FastAPI (Phase 4)
 ```
 
 ## Data Model

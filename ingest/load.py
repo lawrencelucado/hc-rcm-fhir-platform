@@ -18,13 +18,13 @@ DB_CONFIG = {
     "port":     int(os.getenv("DB_PORT", 5432)),
     "dbname":   os.getenv("DB_NAME", "rcm"),
     "user":     os.getenv("DB_USER", "rcm"),
-    "password": os.getenv("DB_PASSWORD", "rcm_dev_2026"),
+    "password": os.environ["DB_PASSWORD"],
 }
 
 MINIO_CONFIG = {
     "endpoint":   os.getenv("MINIO_ENDPOINT", "localhost:9000"),
     "access_key": os.getenv("MINIO_ACCESS_KEY", "rcmadmin"),
-    "secret_key": os.getenv("MINIO_SECRET_KEY", "rcm_minio_2026"),
+    "secret_key": os.environ["MINIO_SECRET_KEY"],
     "secure":     False,
     "bucket":     "rcm-raw",
 }

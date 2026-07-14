@@ -20,13 +20,13 @@ logging.basicConfig(
 log = logging.getLogger("splunk-forwarder")
 
 # Config from environment
-PG_DSN = os.getenv("PG_DSN", "host=postgres port=5432 dbname=rcm user=rcm password=rcm_dev_2026")
+PG_DSN = os.environ["PG_DSN"]
 SPLUNK_HEC_URL = os.getenv("SPLUNK_HEC_URL", "http://rcm-splunk:8088/services/collector/event")
-SPLUNK_HEC_TOKEN = os.getenv("SPLUNK_HEC_TOKEN", "rcm-phi-audit-2026")
+SPLUNK_HEC_TOKEN = os.environ["SPLUNK_HEC_TOKEN"]
 SPLUNK_INDEX = os.getenv("SPLUNK_INDEX", "phi_audit")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))
 SPLUNK_API_URL = os.getenv("SPLUNK_API_URL", "http://rcm-splunk:8089")
-SPLUNK_ADMIN_PASS = os.getenv("SPLUNK_ADMIN_PASS", "Rcm_Splunk_2026!")
+SPLUNK_ADMIN_PASS = os.environ["SPLUNK_ADMIN_PASS"]
 
 
 def wait_for_splunk(max_wait=300):

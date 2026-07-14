@@ -1,0 +1,83 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "Organization/payer-demo",
+      "resource": {
+        "resourceType": "Organization",
+        "id": "payer-demo",
+        "identifier": [{"system": "https://example.org/payer-id", "value": "PAYER-DEMO-01"}],
+        "active": true,
+        "name": "Synthetic Health Plan"
+      },
+      "request": {"method": "PUT", "url": "Organization/payer-demo"}
+    },
+    {
+      "fullUrl": "Organization/provider-demo",
+      "resource": {
+        "resourceType": "Organization",
+        "id": "provider-demo",
+        "identifier": [{"system": "http://hl7.org/fhir/sid/us-npi", "value": "1999999999"}],
+        "active": true,
+        "name": "Synthetic Community Clinic"
+      },
+      "request": {"method": "PUT", "url": "Organization/provider-demo"}
+    },
+    {
+      "fullUrl": "Patient/patient-demo",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-demo",
+        "identifier": [{"system": "https://example.org/mrn", "value": "SYNTH-0001"}],
+        "active": true,
+        "name": [{"use": "official", "family": "Example", "given": ["Avery"]}],
+        "gender": "unknown",
+        "birthDate": "1985-01-01"
+      },
+      "request": {"method": "PUT", "url": "Patient/patient-demo"}
+    },
+    {
+      "fullUrl": "Coverage/coverage-demo",
+      "resource": {
+        "resourceType": "Coverage",
+        "id": "coverage-demo",
+        "status": "active",
+        "beneficiary": {"reference": "Patient/patient-demo"},
+        "payor": [{"reference": "Organization/payer-demo"}]
+      },
+      "request": {"method": "PUT", "url": "Coverage/coverage-demo"}
+    },
+    {
+      "fullUrl": "Encounter/encounter-demo",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "encounter-demo",
+        "status": "finished",
+        "class": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "AMB", "display": "ambulatory"},
+        "subject": {"reference": "Patient/patient-demo"},
+        "serviceProvider": {"reference": "Organization/provider-demo"},
+        "period": {"start": "2026-07-01T14:00:00Z", "end": "2026-07-01T14:30:00Z"}
+      },
+      "request": {"method": "PUT", "url": "Encounter/encounter-demo"}
+    },
+    {
+      "fullUrl": "Claim/claim-demo",
+      "resource": {
+        "resourceType": "Claim",
+        "id": "claim-demo",
+        "identifier": [{"system": "https://example.org/claim-id", "value": "SYNTH-CLM-0001"}],
+        "status": "active",
+        "type": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/claim-type", "code": "professional"}]},
+        "use": "claim",
+        "patient": {"reference": "Patient/patient-demo"},
+        "created": "2026-07-02",
+        "provider": {"reference": "Organization/provider-demo"},
+        "priority": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/processpriority", "code": "normal"}]},
+        "insurance": [{"sequence": 1, "focal": true, "coverage": {"reference": "Coverage/coverage-demo"}}],
+        "item": [{"sequence": 1, "encounter": [{"reference": "Encounter/encounter-demo"}], "productOrService": {"coding": [{"system": "http://www.ama-assn.org/go/cpt", "code": "99213"}]}, "unitPrice": {"value": 125.00, "currency": "USD"}}]
+      },
+      "request": {"method": "PUT", "url": "Claim/claim-demo"}
+    }
+  ]
+}
