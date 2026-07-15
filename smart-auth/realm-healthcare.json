@@ -1,0 +1,71 @@
+{
+  "realm": "healthcare",
+  "enabled": true,
+  "displayName": "Healthcare Interoperability Lab",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "clientScopes": [
+    {"name": "fhirUser", "protocol": "openid-connect"},
+    {"name": "launch", "protocol": "openid-connect"},
+    {"name": "launch/patient", "protocol": "openid-connect"},
+    {"name": "patient/*.read", "protocol": "openid-connect"},
+    {"name": "user/*.read", "protocol": "openid-connect"},
+    {"name": "system/*.read", "protocol": "openid-connect"},
+    {"name": "system/*.write", "protocol": "openid-connect"}
+  ],
+  "clients": [
+    {
+      "clientId": "smart-fhir-gateway",
+      "name": "SMART FHIR Gateway",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "SMART_PROXY_CLIENT_SECRET",
+      "standardFlowEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://10.20.1.157:8091/oauth2/callback"],
+      "webOrigins": ["http://10.20.1.157:8091"]
+    },
+    {
+      "clientId": "mirth-service",
+      "name": "Mirth Backend Service",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "MIRTH_CLIENT_SECRET",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "defaultClientScopes": ["system/*.read", "system/*.write"],
+      "protocolMappers": [
+        {
+          "name": "FHIR gateway audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {"included.client.audience": "smart-fhir-gateway", "access.token.claim": "true", "id.token.claim": "false"}
+        }
+      ]
+    },
+    {
+      "clientId": "smart-demo-client",
+      "name": "SMART Public PKCE Demo",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:3000/callback"],
+      "webOrigins": ["http://localhost:3000"],
+      "optionalClientScopes": ["fhirUser", "launch", "launch/patient", "patient/*.read", "user/*.read"]
+    }
+  ],
+  "users": [
+    {
+      "username": "smart-demo",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "smart-demo@synthetic.invalid",
+      "firstName": "SMART",
+      "lastName": "Demo",
+      "credentials": [{"type": "password", "value": "ChangeMe-On-First-Login", "temporary": true}]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:condition-synth-0002",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "condition-synth-0002",
+        "clinicalStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active"}]},
+        "verificationStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-ver-status", "code": "confirmed"}]},
+        "code": {"coding": [{"system": "http://snomed.info/sct", "code": "38341003", "display": "Hypertensive disorder"}]},
+        "subject": {"reference": "Patient/patient-synth-0002"},
+        "encounter": {"reference": "Encounter/encounter-enc-0002"}
+      },
+      "request": {"method": "PUT", "url": "Condition/condition-synth-0002"}
+    },
+    {
+      "fullUrl": "urn:uuid:observation-synth-0002",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "observation-synth-0002",
+        "status": "final",
+        "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "vital-signs"}]}],
+        "code": {"coding": [{"system": "http://loinc.org", "code": "85354-9", "display": "Blood pressure panel with all children optional"}]},
+        "subject": {"reference": "Patient/patient-synth-0002"},
+        "encounter": {"reference": "Encounter/encounter-enc-0002"},
+        "effectiveDateTime": "2026-07-13T19:46:00-05:00",
+        "component": [
+          {"code": {"coding": [{"system": "http://loinc.org", "code": "8480-6", "display": "Systolic blood pressure"}]}, "valueQuantity": {"value": 120, "unit": "mmHg", "system": "http://unitsofmeasure.org", "code": "mm[Hg]"}},
+          {"code": {"coding": [{"system": "http://loinc.org", "code": "8462-4", "display": "Diastolic blood pressure"}]}, "valueQuantity": {"value": 80, "unit": "mmHg", "system": "http://unitsofmeasure.org", "code": "mm[Hg]"}}
+        ]
+      },
+      "request": {"method": "PUT", "url": "Observation/observation-synth-0002"}
+    },
+    {
+      "fullUrl": "urn:uuid:medicationrequest-synth-0002",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "medicationrequest-synth-0002",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {"coding": [{"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "313782", "display": "Acetaminophen 325 MG Oral Tablet"}]},
+        "subject": {"reference": "Patient/patient-synth-0002"},
+        "encounter": {"reference": "Encounter/encounter-enc-0002"},
+        "authoredOn": "2026-07-13"
+      },
+      "request": {"method": "PUT", "url": "MedicationRequest/medicationrequest-synth-0002"}
+    }
+  ]
+}

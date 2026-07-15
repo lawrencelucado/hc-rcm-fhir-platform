@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16.9
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mirthdb
+      POSTGRES_USER: mirth
+      POSTGRES_PASSWORD: ${MIRTH_DB_PASSWORD:?set MIRTH_DB_PASSWORD in .env}
+    volumes:
+      - mirth_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mirth -d mirthdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "5"}
+
+  mirth:
+    image: nextgenhealthcare/connect@sha256:3c39d537d0b253d99d1c56d4a6d099f0e958e2e40eb6e2076a0bc4ff70338889
+    restart: unless-stopped
+    environment:
+      DATABASE: postgres
+      DATABASE_URL: jdbc:postgresql://db:5432/mirthdb
+      DATABASE_USERNAME: mirth
+      DATABASE_PASSWORD: ${MIRTH_DB_PASSWORD:?set MIRTH_DB_PASSWORD in .env}
+      VMOPTIONS: -Xms256m,-Xmx1024m
+      _MP_HTTP_PORT: "8080"
+      _MP_HTTPS_PORT: "8443"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+      - "6661:6661"
+      - "6662:6662"
+    volumes:
+      - mirth_appdata:/opt/connect/appdata
+      - ./custom-extensions:/opt/connect/custom-extensions:ro
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "5"}
+
+volumes:
+  mirth_db:
+  mirth_appdata:

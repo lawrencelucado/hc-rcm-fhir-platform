@@ -1,5 +1,9 @@
 # HC RCM FHIR Platform
 
+## Interoperability lab
+
+This repository includes a synthetic Mirth Connect HL7 v2 to FHIR R4 lab, terminology examples, US Core validation, OAuth2/SMART gateway configuration, automated negative/recovery tests and a [portfolio case study](docs/portfolio-case-study.md). See [Mirth setup](mirth/README.md), [SMART security](smart-auth/README.md) and [validation evidence](docs/validation-results.md).
+
 Healthcare Revenue Cycle + FHIR Data Platform
 **Phase 2 — RCM + FHIR Integration Homelab**
 
