@@ -7,6 +7,17 @@ import urllib.request
 
 BASE = os.getenv("SMART_BASE", "http://10.20.1.157:8091")
 TOKEN_URL = os.getenv("SMART_TOKEN_URL", "http://10.20.1.157:8180/realms/healthcare/protocol/openid-connect/token")
+LIVE_TEST_ACKNOWLEDGEMENT = "I_UNDERSTAND_THIS_CONTACTS_LIVE_AUTH"
+
+
+def require_live_test_acknowledgement() -> None:
+    """Fail closed unless the operator explicitly authorizes live auth use."""
+    if os.getenv("RUN_LIVE_SMART_TESTS") != LIVE_TEST_ACKNOWLEDGEMENT:
+        raise SystemExit(
+            "BLOCKED: this script contacts live SMART and OAuth endpoints. "
+            "Set RUN_LIVE_SMART_TESTS to the documented acknowledgement "
+            "value only when a live test is intentional."
+        )
 
 
 def request(url, *, data=None, headers=None):
@@ -19,6 +30,7 @@ def request(url, *, data=None, headers=None):
 
 
 def main():
+    require_live_test_acknowledgement()
     status, body, _ = request(f"{BASE}/.well-known/smart-configuration")
     assert status == 200
     smart = json.loads(body)

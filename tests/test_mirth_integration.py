@@ -10,6 +10,17 @@ from urllib.request import Request, urlopen
 
 MIRTH_HOST = os.getenv("MIRTH_HOST", "10.20.1.157")
 FHIR_BASE_URL = os.getenv("FHIR_BASE_URL", "http://10.20.1.207:8090/fhir").rstrip("/")
+LIVE_TEST_ACKNOWLEDGEMENT = "I_UNDERSTAND_THIS_CHANGES_LAB_STATE"
+
+
+def require_live_test_acknowledgement() -> None:
+    """Fail closed unless the operator explicitly authorizes live lab writes."""
+    if os.getenv("RUN_LIVE_INTEGRATION_TESTS") != LIVE_TEST_ACKNOWLEDGEMENT:
+        raise SystemExit(
+            "BLOCKED: this script sends HL7 messages and may create FHIR "
+            "resources. Set RUN_LIVE_INTEGRATION_TESTS to the documented "
+            "acknowledgement value only when a live test is intentional."
+        )
 
 
 def hl7(*segments: str) -> str:
@@ -80,6 +91,7 @@ def wait_for(path: str, resource_type: str, timeout: int = 30) -> dict:
 
 
 def main() -> None:
+    require_live_test_acknowledgement()
     print("TEST: sending ADT", flush=True)
     adt_ack = send_mllp(6661, ADT)
     print(f"TEST: ADT ACK {ack_code(adt_ack)}", flush=True)

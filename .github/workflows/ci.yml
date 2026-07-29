@@ -1,0 +1,32 @@
+name: safe-validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run static repository validation
+        run: python scripts/validate_repository.py
+
+      - name: Run safe unit tests
+        run: python -m unittest discover -s tests -p "test_safe_*.py" -v
+
+      - name: Validate Docker Compose rendering
+        run: docker compose --env-file .env.example config --quiet
