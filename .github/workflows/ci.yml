@@ -2,7 +2,9 @@ name: safe-validation
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - "training/**"
   pull_request:
 
 permissions:
