@@ -1,12 +1,13 @@
+# All credentials come from .env (copy .env.example). Nothing secret is stored here.
 services:
   postgres:
     build: ./postgres
     container_name: rcm-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: rcm
-      POSTGRES_PASSWORD: rcm_dev_2026
-      POSTGRES_DB: rcm
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -14,14 +15,18 @@ services:
       - ./ingest/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./postgres/pgaudit.conf:/etc/postgresql/pgaudit.conf
     command: postgres -c shared_preload_libraries=pgaudit -c pgaudit.log=read,write -c pgaudit.log_relation=on -c pgaudit.log_catalog=off
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      retries: 20
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     container_name: rcm-minio
     restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: rcmadmin
-      MINIO_ROOT_PASSWORD: rcm_minio_2026
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -34,12 +39,16 @@ services:
     container_name: rcm-grafana
     restart: unless-stopped
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: rcm_grafana_2026
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
       GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_SERVER_ROOT_URL: http://10.20.1.246:3000
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3000}
       GF_UNIFIED_ALERTING_ENABLED: "true"
       GF_ALERTING_ENABLED: "false"
+      # Read by the provisioned datasource (grafana/provisioning/datasources)
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "3000:3000"
     volumes:
@@ -56,8 +65,8 @@ services:
     restart: unless-stopped
     environment:
       SPLUNK_START_ARGS: --accept-license
-      SPLUNK_PASSWORD: Rcm_Splunk_2026!
-      SPLUNK_HEC_TOKEN: rcm-phi-audit-2026
+      SPLUNK_PASSWORD: ${SPLUNK_PASSWORD:?set SPLUNK_PASSWORD in .env}
+      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN:?set SPLUNK_HEC_TOKEN in .env}
     ports:
       - "8000:8000"
       - "8088:8088"
@@ -70,12 +79,13 @@ services:
     container_name: rcm-forwarder
     restart: unless-stopped
     environment:
-      PG_DSN: host=postgres port=5432 dbname=rcm user=rcm password=rcm_dev_2026
+      PG_DSN: host=postgres port=5432 dbname=${POSTGRES_DB} user=${POSTGRES_USER} password=${POSTGRES_PASSWORD}
       SPLUNK_HEC_URL: https://rcm-splunk:8088/services/collector/event
-      SPLUNK_HEC_TOKEN: rcm-phi-audit-2026
+      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN}
       SPLUNK_INDEX: phi_audit
       SPLUNK_API_URL: https://rcm-splunk:8089
-      SPLUNK_ADMIN_PASS: Rcm_Splunk_2026!
+      SPLUNK_ADMIN_PASS: ${SPLUNK_PASSWORD}
+      SPLUNK_VERIFY_TLS: ${SPLUNK_VERIFY_TLS:-false}
       POLL_INTERVAL: "30"
     depends_on:
       - postgres
@@ -87,15 +97,24 @@ services:
     restart: unless-stopped
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://rcm:rcm_dev_2026@postgres:5432/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__WEBSERVER__SECRET_KEY: rcm_airflow_secret_2026
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?set AIRFLOW_SECRET_KEY in .env}
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
       _AIRFLOW_DB_MIGRATE: "true"
       _AIRFLOW_WWW_USER_CREATE: "true"
-      _AIRFLOW_WWW_USER_USERNAME: admin
-      _AIRFLOW_WWW_USER_PASSWORD: Rcm_Airflow_2026!
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:?set AIRFLOW_ADMIN_PASSWORD in .env}
       _PIP_ADDITIONAL_REQUIREMENTS: "psycopg2-binary==2.9.9 minio==7.2.7 dbt-postgres==1.9.0"
+      # Passed through to the DAG tasks (ETL + dbt)
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
     ports:
       - "8080:8080"
     volumes:

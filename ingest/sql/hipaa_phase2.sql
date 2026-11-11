@@ -16,6 +16,9 @@ DO $$ BEGIN CREATE ROLE rcm_clinician;  EXCEPTION WHEN duplicate_object THEN NUL
 DO $$ BEGIN CREATE ROLE rcm_admin;      EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── 3. Schema permissions ──
+-- dbt creates these schemas on first run; create them here so the grants work in any order.
+CREATE SCHEMA IF NOT EXISTS curated_curated;
+CREATE SCHEMA IF NOT EXISTS curated_mart;
 GRANT USAGE ON SCHEMA raw            TO rcm_analyst, rcm_clinician, rcm_admin;
 GRANT USAGE ON SCHEMA curated_curated TO rcm_analyst, rcm_admin;
 GRANT USAGE ON SCHEMA curated_mart    TO rcm_analyst, rcm_admin;
@@ -30,6 +33,9 @@ GRANT SELECT ON raw.payers, raw.providers
 -- Curated and mart: analysts and admins
 GRANT SELECT ON ALL TABLES IN SCHEMA curated_curated TO rcm_analyst, rcm_admin;
 GRANT SELECT ON ALL TABLES IN SCHEMA curated_mart    TO rcm_analyst, rcm_admin;
+-- Tables dbt builds later inherit the same read access
+ALTER DEFAULT PRIVILEGES IN SCHEMA curated_curated GRANT SELECT ON TABLES TO rcm_analyst, rcm_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA curated_mart    GRANT SELECT ON TABLES TO rcm_analyst, rcm_admin;
 
 -- Audit log: admin only
 GRANT SELECT ON audit.access_log TO rcm_admin;
@@ -62,15 +68,18 @@ CREATE POLICY patients_clinician_policy ON raw.patients
     )
   );
 
--- ── 5. PHI column tagging (§164.514 de-identification) ──
+-- ── 5. PHI column tagging (§164.514(b) Safe Harbor identifiers) ──
+COMMENT ON COLUMN raw.patients.patient_id    IS 'PHI_TAG:DIRECT_IDENTIFIER';
 COMMENT ON COLUMN raw.patients.first_name    IS 'PHI_TAG:DIRECT_IDENTIFIER';
 COMMENT ON COLUMN raw.patients.last_name     IS 'PHI_TAG:DIRECT_IDENTIFIER';
-COMMENT ON COLUMN raw.patients.date_of_birth IS 'PHI_TAG:DIRECT_IDENTIFIER';
+COMMENT ON COLUMN raw.patients.dob           IS 'PHI_TAG:DIRECT_IDENTIFIER';
+COMMENT ON COLUMN raw.patients.address_line1 IS 'PHI_TAG:DIRECT_IDENTIFIER';
+COMMENT ON COLUMN raw.patients.city          IS 'PHI_TAG:DIRECT_IDENTIFIER';
+COMMENT ON COLUMN raw.patients.zip           IS 'PHI_TAG:DIRECT_IDENTIFIER';
+COMMENT ON COLUMN raw.patients.mrn           IS 'PHI_TAG:DIRECT_IDENTIFIER';
+COMMENT ON COLUMN raw.patients.insurance_id  IS 'PHI_TAG:DIRECT_IDENTIFIER';
 COMMENT ON COLUMN raw.patients.gender        IS 'PHI_TAG:QUASI_IDENTIFIER';
-COMMENT ON COLUMN raw.patients.zip_code      IS 'PHI_TAG:QUASI_IDENTIFIER';
-COMMENT ON COLUMN raw.patients.phone         IS 'PHI_TAG:DIRECT_IDENTIFIER';
-COMMENT ON COLUMN raw.patients.email         IS 'PHI_TAG:DIRECT_IDENTIFIER';
-COMMENT ON COLUMN raw.patients.patient_id    IS 'PHI_TAG:DIRECT_IDENTIFIER';
+COMMENT ON COLUMN raw.patients.state         IS 'PHI_TAG:QUASI_IDENTIFIER';
 
 -- ── 6. PHI access logging function ──
 CREATE OR REPLACE FUNCTION audit.log_phi_access()
@@ -130,14 +139,14 @@ CREATE TRIGGER phi_audit_delete
 -- ── 8. Seed demo audit events (simulates PHI access activity) ──
 INSERT INTO audit.access_log (accessed_at, db_user, table_name, operation, row_count, application, client_ip, role_name, severity, splunk_sent)
 VALUES
-  (NOW() - INTERVAL '2 hours',  'rcm_admin',     'raw.patients', 'SELECT', 500, 'grafana',     '10.20.1.10',  'rcm_admin',     'INFO',    FALSE),
-  (NOW() - INTERVAL '90 min',   'rcm_clinician', 'raw.patients', 'SELECT', 12,  'emr-app',     '10.20.1.50',  'rcm_clinician', 'INFO',    FALSE),
-  (NOW() - INTERVAL '60 min',   'rcm_analyst',   'raw.patients', 'SELECT', 500, 'bi-tool',     '10.20.1.75',  'rcm_analyst',   'WARNING', FALSE),
-  (NOW() - INTERVAL '45 min',   'rcm_admin',     'raw.patients', 'UPDATE', 3,   'admin-panel',  '10.20.1.10',  'rcm_admin',     'WARNING', FALSE),
-  (NOW() - INTERVAL '30 min',   'rcm_clinician', 'raw.patients', 'SELECT', 8,   'emr-app',     '10.20.1.51',  'rcm_clinician', 'INFO',    FALSE),
+  (NOW() - INTERVAL '2 hours',  'rcm_admin',     'raw.patients', 'SELECT', 500, 'grafana',     '192.0.2.10',  'rcm_admin',     'INFO',    FALSE),
+  (NOW() - INTERVAL '90 min',   'rcm_clinician', 'raw.patients', 'SELECT', 12,  'emr-app',     '192.0.2.50',  'rcm_clinician', 'INFO',    FALSE),
+  (NOW() - INTERVAL '60 min',   'rcm_analyst',   'raw.patients', 'SELECT', 500, 'bi-tool',     '192.0.2.75',  'rcm_analyst',   'WARNING', FALSE),
+  (NOW() - INTERVAL '45 min',   'rcm_admin',     'raw.patients', 'UPDATE', 3,   'admin-panel',  '192.0.2.10',  'rcm_admin',     'WARNING', FALSE),
+  (NOW() - INTERVAL '30 min',   'rcm_clinician', 'raw.patients', 'SELECT', 8,   'emr-app',     '192.0.2.51',  'rcm_clinician', 'INFO',    FALSE),
   (NOW() - INTERVAL '15 min',   'unknown_user',  'raw.patients', 'SELECT', 500, 'unknown',     '192.168.1.99','',              'WARNING', FALSE),
-  (NOW() - INTERVAL '5 min',    'rcm_admin',     'raw.patients', 'DELETE', 1,   'admin-panel', '10.20.1.10',  'rcm_admin',     'WARNING', FALSE),
-  (NOW() - INTERVAL '2 min',    'rcm_analyst',   'raw.claims',   'SELECT', 10000,'bi-tool',    '10.20.1.75',  'rcm_analyst',   'INFO',    FALSE),
-  (NOW(),                        'rcm_clinician', 'raw.patients', 'SELECT', 5,   'emr-app',     '10.20.1.50',  'rcm_clinician', 'INFO',    FALSE);
+  (NOW() - INTERVAL '5 min',    'rcm_admin',     'raw.patients', 'DELETE', 1,   'admin-panel', '192.0.2.10',  'rcm_admin',     'WARNING', FALSE),
+  (NOW() - INTERVAL '2 min',    'rcm_analyst',   'raw.claims',   'SELECT', 10000,'bi-tool',    '192.0.2.75',  'rcm_analyst',   'INFO',    FALSE),
+  (NOW(),                        'rcm_clinician', 'raw.patients', 'SELECT', 5,   'emr-app',     '192.0.2.50',  'rcm_clinician', 'INFO',    FALSE);
 
 SELECT 'HIPAA Phase 2 controls applied' AS status;

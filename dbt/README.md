@@ -1,10 +1,9 @@
-# dbt Placeholder
+# dbt project
 
-This directory is reserved for the dbt project that will define:
+- `models/curated/`: `dim_patient`, `dim_payer`, `dim_provider`, `fct_claims`, `fct_denials`
+- `models/mart/`: `denial_summary`, `ar_aging`, `payer_scorecard`, `audit_summary`
+- `models/schema.yml`: key, relationship and accepted-value tests
+- `tests/`: business-rule tests (remit amounts reconcile; late filing is denied CO-29)
 
-- dimensions for patient, payer, and provider
-- facts for claims and denials
-- marts for denial trends and reimbursement leakage
-- data quality tests
-
-The initial scaffold keeps dbt as a placeholder until the first raw ingestion slice is working.
+Run from the repo root with `make dbt` and `make test`, or everything at once with `make pipeline`.
+The profile in `airflow_profiles/` reads connection settings from environment variables (`DB_HOST`, `DB_PASSWORD`, ...).

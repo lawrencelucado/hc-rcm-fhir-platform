@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS raw.claims (
     provider_id         VARCHAR(20),
     date_of_service     DATE,
     date_submitted      DATE,
-    claim_type          VARCHAR(10),   -- professional, institutional
+    claim_type          VARCHAR(20),   -- professional, institutional
     primary_diagnosis   VARCHAR(10),   -- ICD-10
     secondary_diagnosis VARCHAR(10),
     procedure_code      VARCHAR(10),   -- CPT

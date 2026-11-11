@@ -17,16 +17,8 @@ default_args = {
     "email_on_failure": False,
 }
 
-ENV = {
-    "DB_HOST": "postgres",
-    "DB_PORT": "5432",
-    "DB_NAME": "rcm",
-    "DB_USER": "rcm",
-    "DB_PASS": "rcm_dev_2026",
-    "MINIO_ENDPOINT": "minio:9000",
-    "MINIO_ACCESS_KEY": "rcmadmin",
-    "MINIO_SECRET_KEY": "rcm_minio_2026",
-}
+# Credentials come from the Airflow container environment (docker-compose.yml + .env);
+# BashOperator tasks inherit it, so nothing secret lives in the DAG.
 
 with DAG(
     dag_id="rcm_full_pipeline",
@@ -41,13 +33,11 @@ with DAG(
     generate = BashOperator(
         task_id="generate_synthetic_data",
         bash_command="python3 /opt/rcm/ingest/generate_data.py",
-        env=ENV,
     )
 
     load = BashOperator(
         task_id="load_to_postgres",
         bash_command="python3 /opt/rcm/ingest/load.py",
-        env=ENV,
     )
 
     dbt_run = BashOperator(
@@ -56,16 +46,14 @@ with DAG(
             "cd /opt/rcm/dbt && "
             "dbt run --profiles-dir /opt/rcm/dbt/airflow_profiles --target docker"
         ),
-        env=ENV,
     )
 
     dbt_test = BashOperator(
         task_id="dbt_test",
         bash_command=(
             "cd /opt/rcm/dbt && "
-            "dbt test --profiles-dir /opt/rcm/dbt/airflow_profiles --target docker 2>/dev/null || true"
+            "dbt test --profiles-dir /opt/rcm/dbt/airflow_profiles --target docker"
         ),
-        env=ENV,
     )
 
     generate >> load >> dbt_run >> dbt_test

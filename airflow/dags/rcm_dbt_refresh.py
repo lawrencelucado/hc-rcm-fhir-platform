@@ -15,13 +15,8 @@ default_args = {
     "email_on_failure": False,
 }
 
-ENV = {
-    "DB_HOST": "postgres",
-    "DB_PORT": "5432",
-    "DB_NAME": "rcm",
-    "DB_USER": "rcm",
-    "DB_PASS": "rcm_dev_2026",
-}
+# Credentials come from the Airflow container environment (docker-compose.yml + .env);
+# BashOperator tasks inherit it, so nothing secret lives in the DAG.
 
 with DAG(
     dag_id="rcm_dbt_refresh",
@@ -40,7 +35,6 @@ with DAG(
             "dbt run --profiles-dir /opt/rcm/dbt/airflow_profiles --target docker "
             "--select mart.*"
         ),
-        env=ENV,
     )
 
     dbt_audit = BashOperator(
@@ -50,7 +44,6 @@ with DAG(
             "dbt run --profiles-dir /opt/rcm/dbt/airflow_profiles --target docker "
             "--select audit_summary"
         ),
-        env=ENV,
     )
 
     dbt_run >> dbt_audit

@@ -1,0 +1,74 @@
+version: 2
+
+# Data quality tests. `dbt build` (or `make test`) runs them, and CI fails the build on any failure.
+
+models:
+  - name: dim_patient
+    description: Patient demographics (PHI; access controlled by RLS on raw.patients)
+    columns:
+      - name: patient_id
+        tests: [unique, not_null]
+
+  - name: dim_payer
+    columns:
+      - name: payer_id
+        tests: [unique, not_null]
+      - name: payer_type
+        tests:
+          - accepted_values:
+              values: ["commercial", "medicare", "medicaid"]
+
+  - name: dim_provider
+    columns:
+      - name: provider_id
+        tests: [unique, not_null]
+      - name: npi
+        tests: [not_null, unique]
+
+  - name: fct_claims
+    description: One row per claim, with timely-filing flag
+    columns:
+      - name: claim_id
+        tests: [unique, not_null]
+      - name: payer_id
+        tests:
+          - not_null
+          - relationships: {to: ref('dim_payer'), field: payer_id}
+      - name: patient_id
+        tests:
+          - relationships: {to: ref('dim_patient'), field: patient_id}
+      - name: billed_amount
+        tests: [not_null]
+
+  - name: fct_denials
+    description: One row per remittance, with denial recovery category
+    columns:
+      - name: remit_id
+        tests: [unique, not_null]
+      - name: claim_id
+        tests:
+          - not_null
+          - relationships: {to: ref('fct_claims'), field: claim_id}
+      - name: denial_category
+        tests:
+          - accepted_values:
+              values: ["CO", "PR"]
+      - name: recovery_category
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Appealable", "Patient Responsible", "Write-off", "Paid"]
+
+  - name: payer_scorecard
+    columns:
+      - name: payer_name
+        tests: [unique, not_null]
+      - name: payer_grade
+        tests:
+          - accepted_values:
+              values: ["A", "B", "C", "D"]
+
+  - name: ar_aging
+    columns:
+      - name: payer_name
+        tests: [unique, not_null]
