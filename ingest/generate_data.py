@@ -20,8 +20,8 @@ PAYERS = [
     ("PAY003", "Cigna",                   "commercial", 90),
     ("PAY004", "UnitedHealthcare",        "commercial", 90),
     ("PAY005", "Humana",                  "commercial", 90),
-    ("PAY006", "Medicare Part B",         "medicare",   12),
-    ("PAY007", "Medicare Part A",         "medicare",   12),
+    ("PAY006", "Medicare Part B",         "medicare",   365),  # 12 months from date of service
+    ("PAY007", "Medicare Part A",         "medicare",   365),
     ("PAY008", "Texas Medicaid",          "medicaid",   95),
 ]
 
@@ -68,17 +68,30 @@ ICD10_CODES = [
     "Z23",    # Encounter for immunization
 ]
 
+# Base probabilities sum to ~11%, in line with typical initial denial rates (roughly 10-15%).
+# PAYER_DENIAL_FACTOR spreads payers across the scorecard grades.
+PAYER_DENIAL_FACTOR = {
+    "PAY001": 0.7,   # Blue Cross Blue Shield
+    "PAY002": 1.0,   # Aetna
+    "PAY003": 0.8,   # Cigna
+    "PAY004": 1.9,   # UnitedHealthcare
+    "PAY005": 1.4,   # Humana
+    "PAY006": 0.6,   # Medicare Part B
+    "PAY007": 0.5,   # Medicare Part A
+    "PAY008": 2.6,   # Texas Medicaid
+}
+
 DENIAL_RULES = [
     ("CO-29", "CO", "Timely filing limit exceeded",               0.08),
-    ("CO-4",  "CO", "Procedure code inconsistent with modifier",  0.06),
-    ("CO-97", "CO", "Payment included in another service",        0.05),
-    ("CO-11", "CO", "Diagnosis inconsistent with procedure",      0.07),
-    ("CO-16", "CO", "Claim lacks required information",           0.04),
-    ("CO-50", "CO", "Non-covered service",                        0.03),
-    ("PR-96", "PR", "Non-covered charge, patient responsibility", 0.04),
-    ("CO-119","CO", "Benefit maximum for this time period reached",0.03),
-    ("CO-18", "CO", "Duplicate claim",                            0.02),
-    ("CO-45", "CO", "Charge exceeds fee schedule",                0.05),
+    ("CO-4",  "CO", "Procedure code inconsistent with modifier",  0.018),
+    ("CO-97", "CO", "Payment included in another service",        0.015),
+    ("CO-11", "CO", "Diagnosis inconsistent with procedure",      0.020),
+    ("CO-16", "CO", "Claim lacks required information",           0.012),
+    ("CO-50", "CO", "Non-covered service",                        0.009),
+    ("PR-96", "PR", "Non-covered charge, patient responsibility", 0.012),
+    ("CO-119","CO", "Benefit maximum for this time period reached",0.009),
+    ("CO-18", "CO", "Duplicate claim",                            0.006),
+    ("CO-45", "CO", "Charge exceeds fee schedule",                0.015),
 ]
 
 MODIFIERS = ["", "", "", "25", "59", "GT", "26", "TC"]
@@ -168,8 +181,9 @@ def generate_remittance(claims):
         else:
             roll = random.random()
             cumulative = 0
+            factor = PAYER_DENIAL_FACTOR.get(claim["payer_id"], 1.0)
             for code, cat, reason, prob in DENIAL_RULES[1:]:
-                cumulative += prob
+                cumulative += prob * factor
                 if roll < cumulative:
                     denial_code, denial_cat, denial_reason = code, cat, reason
                     is_denied = True
@@ -181,7 +195,8 @@ def generate_remittance(claims):
             pt_res = billed if denial_cat == "PR" else 0.0
         else:
             allowed  = round(billed * random.uniform(0.55, 0.85), 2)
-            copay    = round(random.uniform(20, 150), 2)
+            # Patient cost share can't exceed the allowed amount, so payer payment is never negative
+            copay    = round(min(random.uniform(20, 150), allowed), 2)
             paid     = round(allowed - copay, 2)
             adj      = round(billed - allowed, 2)
             pt_res   = copay

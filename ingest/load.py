@@ -13,21 +13,26 @@ from minio import Minio
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 
+# Credentials must come from the environment (see .env.example). No defaults for secrets.
 DB_CONFIG = {
     "host":     os.getenv("DB_HOST", "localhost"),
     "port":     int(os.getenv("DB_PORT", 5432)),
     "dbname":   os.getenv("DB_NAME", "rcm"),
     "user":     os.getenv("DB_USER", "rcm"),
-    "password": os.getenv("DB_PASSWORD", "rcm_dev_2026"),
+    "password": os.getenv("DB_PASSWORD") or os.getenv("POSTGRES_PASSWORD"),
 }
 
 MINIO_CONFIG = {
     "endpoint":   os.getenv("MINIO_ENDPOINT", "localhost:9000"),
-    "access_key": os.getenv("MINIO_ACCESS_KEY", "rcmadmin"),
-    "secret_key": os.getenv("MINIO_SECRET_KEY", "rcm_minio_2026"),
+    "access_key": os.getenv("MINIO_ACCESS_KEY") or os.getenv("MINIO_ROOT_USER"),
+    "secret_key": os.getenv("MINIO_SECRET_KEY") or os.getenv("MINIO_ROOT_PASSWORD"),
     "secure":     False,
     "bucket":     "rcm-raw",
 }
+
+# LOAD_SOURCE=minio (default): land files in MinIO, then load from there.
+# LOAD_SOURCE=local: read the CSVs straight from data/ (used in CI, where MinIO isn't running).
+LOAD_SOURCE = os.getenv("LOAD_SOURCE", "minio")
 
 LOCAL_DATA_DIR = Path(__file__).parent.parent / "data"
 
@@ -132,7 +137,8 @@ def load_remittance(conn, rows):
         coerce(r,"check_date",lambda x: x), r.get("check_number",""),
         coerce(r,"billed_amount",float), coerce(r,"paid_amount",float),
         coerce(r,"adjustment_amount",float), coerce(r,"patient_responsibility",float),
-        r.get("denial_code",""), r.get("denial_category",""), r.get("denial_reason",""),
+        # Paid claims have no denial: store NULL, not empty strings
+        r.get("denial_code") or None, r.get("denial_category") or None, r.get("denial_reason") or None,
         r["is_denied"] in ("True","true","1",True)
     ) for r in rows]
     with conn.cursor() as cur:
@@ -176,8 +182,10 @@ LOADERS = {
 }
 
 def run():
-    print("=== RCM ETL Pipeline ===")
-    minio = get_minio()
+    print(f"=== RCM ETL Pipeline (source: {LOAD_SOURCE}) ===")
+    if not DB_CONFIG["password"]:
+        raise SystemExit("DB_PASSWORD is not set. Copy .env.example to .env, or export DB_PASSWORD.")
+    minio = get_minio() if LOAD_SOURCE == "minio" else None
     conn  = get_db()
 
     for filename, loader in LOADERS.items():
@@ -187,9 +195,14 @@ def run():
             continue
 
         print(f"\n[{filename}]")
-        object_name = upload_to_minio(minio, local_path)
-        rows = read_csv_from_minio(minio, object_name)
-        print(f"  loaded {len(rows):,} rows from MinIO")
+        if minio is not None:
+            object_name = upload_to_minio(minio, local_path)
+            rows = read_csv_from_minio(minio, object_name)
+            print(f"  loaded {len(rows):,} rows from MinIO")
+        else:
+            with open(local_path, newline="", encoding="utf-8") as fh:
+                rows = list(csv.DictReader(fh))
+            print(f"  loaded {len(rows):,} rows from {local_path.name}")
         loader(conn, rows)
         print(f"  inserted into raw schema")
 

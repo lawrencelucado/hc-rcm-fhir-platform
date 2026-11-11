@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pipeline:
+    name: schema + HIPAA controls + ETL + dbt build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rcm
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: rcm
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rcm -d rcm"
+          --health-interval 5s --health-retries 20
+    env:
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_NAME: rcm
+      DB_USER: rcm
+      DB_PASSWORD: ci-only-password
+      LOAD_SOURCE: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r ingest/requirements.txt dbt-postgres==1.9.0
+      - run: bash scripts/pipeline.sh
+
+  secrets-scan:
+    name: no credentials in the current tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: gitleaks (working tree)
+        run: >-
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.18.4
+          detect --source /repo --no-git --redact -v

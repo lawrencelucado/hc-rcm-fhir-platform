@@ -3,10 +3,10 @@ rcm_platform:
   outputs:
     docker:
       type: postgres
-      host: postgres
-      port: 5432
-      dbname: rcm
-      user: rcm
-      password: rcm_dev_2026
+      host: "{{ env_var('DB_HOST', 'postgres') }}"
+      port: "{{ env_var('DB_PORT', '5432') | as_number }}"
+      dbname: "{{ env_var('DB_NAME', 'rcm') }}"
+      user: "{{ env_var('DB_USER', 'rcm') }}"
+      password: "{{ env_var('DB_PASSWORD') }}"
       schema: curated
       threads: 4

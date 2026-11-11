@@ -20,13 +20,18 @@ logging.basicConfig(
 log = logging.getLogger("splunk-forwarder")
 
 # Config from environment
-PG_DSN = os.getenv("PG_DSN", "host=postgres port=5432 dbname=rcm user=rcm password=rcm_dev_2026")
-SPLUNK_HEC_URL = os.getenv("SPLUNK_HEC_URL", "http://rcm-splunk:8088/services/collector/event")
-SPLUNK_HEC_TOKEN = os.getenv("SPLUNK_HEC_TOKEN", "rcm-phi-audit-2026")
+# Secrets are required from the environment (docker-compose.yml + .env); there are no defaults.
+PG_DSN = os.environ["PG_DSN"]
+SPLUNK_HEC_URL = os.getenv("SPLUNK_HEC_URL", "https://rcm-splunk:8088/services/collector/event")
+SPLUNK_HEC_TOKEN = os.environ["SPLUNK_HEC_TOKEN"]
 SPLUNK_INDEX = os.getenv("SPLUNK_INDEX", "phi_audit")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))
-SPLUNK_API_URL = os.getenv("SPLUNK_API_URL", "http://rcm-splunk:8089")
-SPLUNK_ADMIN_PASS = os.getenv("SPLUNK_ADMIN_PASS", "Rcm_Splunk_2026!")
+SPLUNK_API_URL = os.getenv("SPLUNK_API_URL", "https://rcm-splunk:8089")
+SPLUNK_ADMIN_PASS = os.environ["SPLUNK_ADMIN_PASS"]
+# The local Splunk container uses a self-signed certificate, so TLS verification is off by
+# default for development only. Set SPLUNK_VERIFY_TLS=true (or a CA bundle path) in production.
+_verify = os.getenv("SPLUNK_VERIFY_TLS", "false")
+VERIFY_TLS = {"true": True, "false": False}.get(_verify.lower(), _verify)
 
 
 def wait_for_splunk(max_wait=300):
@@ -38,7 +43,7 @@ def wait_for_splunk(max_wait=300):
             r = requests.get(
                 f"{SPLUNK_HEC_URL.replace('/services/collector/event', '/services/collector/health')}",
                 headers={"Authorization": f"Splunk {SPLUNK_HEC_TOKEN}"},
-                timeout=5, verify=False
+                timeout=5, verify=VERIFY_TLS
             )
             if r.status_code in (200, 400):  # 400 means HEC is up but token might not match yet
                 log.info("Splunk HEC is ready")
@@ -57,7 +62,7 @@ def ensure_index():
             f"{SPLUNK_API_URL}/services/data/indexes",
             auth=("admin", SPLUNK_ADMIN_PASS),
             data={"name": SPLUNK_INDEX, "maxTotalDataSizeMB": 1024},
-            verify=False, timeout=10
+            verify=VERIFY_TLS, timeout=10
         )
         if r.status_code in (200, 201, 409):  # 409 = already exists
             log.info(f"Splunk index '{SPLUNK_INDEX}' ready")
@@ -131,7 +136,7 @@ def send_to_splunk(events):
     try:
         r = requests.post(
             SPLUNK_HEC_URL, headers=headers, data=payload,
-            timeout=10, verify=False
+            timeout=10, verify=VERIFY_TLS
         )
         if r.status_code == 200:
             log.info(f"Forwarded {len(events)} events to Splunk")

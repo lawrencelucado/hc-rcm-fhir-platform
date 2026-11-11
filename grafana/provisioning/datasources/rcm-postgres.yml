@@ -4,10 +4,11 @@ datasources:
     type: postgres
     uid: rcm-postgres
     url: postgres:5432
-    database: rcm
-    user: rcm
+    # Values come from the container environment (set in docker-compose.yml from .env)
+    database: ${POSTGRES_DB}
+    user: ${POSTGRES_USER}
     secureJsonData:
-      password: rcm_dev_2026
+      password: ${POSTGRES_PASSWORD}
     jsonData:
       sslmode: disable
       postgresVersion: 1600

@@ -215,3 +215,6 @@ dbt/profiles.yml
 dbt/.user.yml
 dbt/target/
 dbt/logs/
+
+# dbt local user file
+dbt/airflow_profiles/.user.yml

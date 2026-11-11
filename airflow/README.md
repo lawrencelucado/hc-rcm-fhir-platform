@@ -1,13 +1,6 @@
-# Airflow Placeholder
+# Airflow DAGs
 
-This directory will hold the first orchestration slice for the project.
+- `rcm_full_pipeline`: daily at 02:00 - generate synthetic data, load raw, `dbt run`, `dbt test` (a failed test fails the run)
+- `rcm_dbt_refresh`: every 6 hours - rebuild marts and `audit_summary` for Grafana
 
-Planned MVP DAG:
-
-1. ingest_raw
-2. transform_curated
-3. dbt_build
-4. export_fhir
-5. quality_report
-
-No scheduler configuration is included in the initial scaffold to keep the first phase lightweight.
+Credentials are not in the DAGs: tasks inherit them from the Airflow container environment, which `docker-compose.yml` fills from `.env`.
